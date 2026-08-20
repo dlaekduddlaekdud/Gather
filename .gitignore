@@ -46,3 +46,8 @@ shrimp_data/
 
 # playwright mcp 임시 파일 (로그, 스크린샷)
 .playwright-mcp/
+
+# local agent config
+CLAUDE.md
+.claude/
+.mcp.json
