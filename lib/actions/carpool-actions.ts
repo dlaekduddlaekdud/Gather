@@ -60,37 +60,20 @@ export async function joinCarpool(eventId: string, offerId: string): Promise<Car
     redirect('/auth/login')
   }
 
-  const userId = data.claims.sub
-
-  // 잔여 좌석 확인
-  const { data: offer } = await supabase
-    .from('carpool_offers')
-    .select('seats')
-    .eq('id', offerId)
-    .single()
-
-  if (!offer) {
-    return { error: '카풀 정보를 찾을 수 없습니다.' }
-  }
-
-  const { data: passengers } = await supabase
-    .from('carpool_passengers')
-    .select('id')
-    .eq('offer_id', offerId)
-    .in('status', ['pending', 'confirmed'])
-
-  const confirmedCount = passengers?.length ?? 0
-  if (confirmedCount >= offer.seats) {
-    return { error: '잔여 좌석이 없습니다.' }
-  }
-
-  const { error } = await supabase.from('carpool_passengers').insert({
-    offer_id: offerId,
-    user_id: userId,
-    status: 'pending',
-  })
+  // 좌석 검사와 삽입을 DB 함수 안에서 처리한다.
+  // 앱에서 조회 후 삽입하면 두 요청이 조회를 동시에 통과해 정원을 넘길 수 있다.
+  const { error } = await supabase.rpc('join_carpool', { p_offer_id: offerId })
 
   if (error) {
+    if (error.message.includes('CARPOOL_FULL')) {
+      return { error: '잔여 좌석이 없습니다.' }
+    }
+    if (error.message.includes('CARPOOL_OFFER_NOT_FOUND')) {
+      return { error: '카풀 정보를 찾을 수 없습니다.' }
+    }
+    if (error.code === '23505') {
+      return { error: '이미 신청한 카풀입니다.' }
+    }
     return { error: '탑승 신청에 실패했습니다.' }
   }
 
@@ -133,12 +116,16 @@ export async function confirmPassenger(
     redirect('/auth/login')
   }
 
-  const { error } = await supabase
-    .from('carpool_passengers')
-    .update({ status: 'confirmed' })
-    .eq('id', passengerId)
+  // 운전자 확인과 좌석 검사를 DB 함수 안에서 처리한다.
+  const { error } = await supabase.rpc('confirm_passenger', { p_passenger_id: passengerId })
 
   if (error) {
+    if (error.message.includes('CARPOOL_FULL')) {
+      return { error: '좌석이 모두 찼습니다.' }
+    }
+    if (error.message.includes('NOT_CARPOOL_DRIVER')) {
+      return { error: '운전자만 승인할 수 있습니다.' }
+    }
     return { error: '탑승 확인에 실패했습니다.' }
   }
 
