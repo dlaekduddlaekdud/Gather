@@ -11,15 +11,15 @@ Gather는 **참석 확정(RSVP)을 정산과 카풀의 기준 데이터로 삼�
 
 ## 기능
 
-| 영역   | 내용                                                                                 |
-| ------ | ------------------------------------------------------------------------------------ |
+| 영역 | 내용 |
+| --- | --- |
 | 이벤트 | 생성/수정, 상태(active·cancelled·completed), 기능 토글(`has_expense`, `has_carpool`) |
-| 멤버   | 역할 3종(host / co_host / member), RSVP 3종(pending / attending / declined)          |
-| 초대   | 만료 기한(7일) 있는 토큰 링크 초대                                                   |
-| 공지   | host·co_host 작성, 멤버 조회                                                         |
-| 정산   | 참석자 n등분 → 순잔액 기반 이체 목록 산출, 개별 정산 완료 처리                       |
-| 카풀   | 운전자 좌석 등록(1~8석), 탑승 신청 및 운전자 승인/거절                               |
-| 관리자 | 전체 이벤트·사용자 조회, KPI 대시보드                                                |
+| 멤버 | 역할 3종(host / co_host / member), RSVP 3종(pending / attending / declined) |
+| 초대 | 만료 기한(7일) 있는 토큰 링크 초대 |
+| 공지 | host·co_host 작성, 멤버 조회 |
+| 정산 | 참석자 n등분 → 순잔액 기반 이체 목록 산출, 개별 정산 완료 처리 |
+| 카풀 | 운전자 좌석 등록(1~8석), 탑승 신청 및 운전자 승인/거절 |
+| 관리자 | 전체 이벤트·사용자 조회, KPI 대시보드 |
 
 ## 기술 스택
 
@@ -40,7 +40,7 @@ RLS만 있으면 권한 없는 사용자에게 "데이터가 0건인 정상 페�
 
 ### 2. 정산: 저장은 분담액, 표시는 이체 목록
 
-`expense_splits`에는 각자 **내야 할 금액**만 저장한다. "누가 누구에게 얼마" 는 저장하지 않고 조회 시점에 계산한다.
+`expense_splits`에는 각자 **내야 할 금액**만 저장한다. "누가 누구에게 얼마"는 저장하지 않고 조회 시점에 계산한다.
 비용 항목이 추가·삭제될 때마다 이체 관계를 다시 써야 하는 갱신 비용을 피하기 위해서다.
 
 계산은 `lib/utils/expense.ts`의 `calculateSettlements()` — 사용자별 순잔액(`낸 돈 − 낼 돈`)을 구해 채권자·채무자를 각각 금액 내림차순으로 정렬한 뒤 큰 쪽부터 상계하는 그리디다.
@@ -58,20 +58,22 @@ RLS만 있으면 권한 없는 사용자에게 "데이터가 0건인 정상 페�
 
 ## 구조
 
+```text
 app/
-auth/ 로그인·회원가입·비밀번호 재설정·OAuth 콜백
-events/ 이벤트 목록, 생성, 상세(멤버·공지·정산·카풀)
-invite/[token]/ 초대 링크 수락
-admin/ 관리자 대시보드
-profile/
-components/ 기능별 UI (events, members, expense, carpool, announcements, admin)
+  auth/            로그인·회원가입·비밀번호 재설정·OAuth 콜백
+  events/          이벤트 목록, 생성, 상세(멤버·공지·정산·카풀)
+  invite/[token]/  초대 링크 수락
+  admin/           관리자 대시보드
+  profile/
+components/        기능별 UI (events, members, expense, carpool, announcements, admin)
 lib/
-actions/ Server Actions (mutation 전담)
-supabase/ 서버/클라이언트/프록시 Supabase 인스턴스, 생성된 DB 타입
-utils/ 정산 계산, 권한 검사(auth-check, admin-check)
-types/
-supabase/migrations/ 테이블 · 인덱스 · RLS 정책
-docs/ PRD, 로드맵, 개발 가이드
+  actions/         Server Actions (mutation 전담)
+  supabase/        서버/클라이언트/프록시 Supabase 인스턴스, 생성된 DB 타입
+  utils/           정산 계산, 권한 검사(auth-check, admin-check)
+  types/
+supabase/migrations/  테이블 · 인덱스 · RLS 정책
+docs/              PRD, 로드맵, 개발 가이드
+```
 
 ## 로컬 실행
 
